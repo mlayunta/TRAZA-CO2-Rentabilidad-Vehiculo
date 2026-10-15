@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TRAZA//CO2 — Calculadora de Huella y Rentabilidad de Movilidad</title>
+<meta name="description" content="Calculadora profesional de huella CO2, coste total de propiedad (TCO) y rentabilidad económica del cambio de vehículo. Miguel Ángel Layunta López.">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icons/logo.png" type="image/png">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<style>
+:root{--bg:#081420;--panel:#0f2233;--panel2:#13293d;--brand:#00d4a0;--brand2:#00b3e6;--text:#eaf4f9;--muted:#8aa6ba;--line:#1c3a52;--warn:#ffb020;--bad:#ff5c5c;--ok:#00d4a0}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;line-height:1.6;margin:0;padding:0}
+header{background:linear-gradient(135deg,#0a1a2a,#0f2a3d);border-bottom:2px solid var(--brand);padding:36px 20px;text-align:center}
+header h1{margin:0;font-size:2rem;letter-spacing:1px}
+header h1 span{color:var(--brand)}
+header p{color:var(--muted);margin:8px 0 0}
+main{max-width:1000px;margin:0 auto;padding:20px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px;margin-bottom:20px}
+h2{color:var(--brand);font-size:1.25rem;margin-top:0;border-bottom:1px solid var(--line);padding-bottom:10px}
+label{display:block;font-size:.85rem;color:var(--muted);margin-top:14px}
+input,select{width:100%;padding:10px;border-radius:8px;border:1px solid var(--line);background:var(--panel2);color:var(--text);font-size:1rem;margin-top:4px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.btn{background:var(--brand);color:#04110c;padding:12px 24px;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-size:1rem;margin-top:18px}
+.btn.secondary{background:transparent;color:var(--brand);border:1px solid var(--brand)}
+.btn:hover{opacity:.88}
+.result{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:16px;margin-top:16px;display:none}
+.kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:14px}
+.kpi div{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;text-align:center}
+.kpi b{display:block;font-size:1.3rem;color:var(--brand)}
+.kpi small{color:var(--muted)}
+table{width:100%;border-collapse:collapse;margin-top:14px;font-size:.9rem}
+th,td{border:1px solid var(--line);padding:8px;text-align:right}
+th:first-child,td:first-child{text-align:left}
+th{background:var(--panel2);color:var(--brand)}
+.badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:.8rem;font-weight:700}
+.b0{background:#3a3f44;color:#fff}.beco{background:#00d4a0;color:#04110c}.bc{background:#00b3e6;color:#04110c}.b0dgt{background:#ffb020;color:#222}.bemd{background:#ff5c5c;color:#fff}
+.warnbox{background:#3a2c10;border:1px solid var(--warn);color:#ffd88a;padding:12px;border-radius:8px;margin-top:12px;font-size:.9rem;display:none}
+.footer-contact{border-top:1px solid var(--line);padding:36px 20px;text-align:center;color:var(--muted);font-size:.95rem;margin-top:30px}
+.footer-contact strong{color:var(--text);font-size:1.1rem}
+canvas{max-height:340px}
+.note{font-size:.8rem;color:var(--muted);margin-top:10px}
+a{color:var(--brand2)}
+</style>
+</head>
+<body>
+<header>
+<h1>TRAZA<span>//</span>CO2</h1>
+<p>Calculadora profesional de huella de carbono, TCO y rentabilidad del cambio de vehículo</p>
+</header>
+<main>
+
+<div class="card">
+<h2>1 · Datos del vehículo actual</h2>
+<div class="grid">
+<div><label>Matrícula (opcional)</label><input id="matAntes" placeholder="1234 ABC" maxlength="9"></div>
+<div><label>Tipo de combustible</label><select id="combAntes">
+<option value="gasolina">Gasolina</option><option value="diesel">Diésel</option>
+<option value="híbrido">Híbrido (HEV)</option><option value="híbridoench">Híbrido enchufable (PHEV)</option>
+<option value="glp">GLP/GNC</option></select></div>
+<div><label>Consumo (l/100 km o kWh/100km)</label><input id="consAntes" type="number" step="0.1" value="6.5"></div>
+<div><label>Km anuales</label><input id="kmAntes" type="number" value="15000"></div>
+<div><label>Precio combustible (€/l o €/kWh)</label><input id="precioAntes" type="number" step="0.01" value="1.55"></div>
+<div><label>Precio compra vehículo (€)</label><input id="pCompraAntes" type="number" value="0"></div>
+</div>
+<button class="btn secondary" onclick="consultarDGT()">Consultar distintivo DGT</button>
+<div class="result" id="resDGT"></div>
+</div>
+
+<div class="card">
+<h2>2 · Escenario de precio CO₂ y horizonte temporal</h2>
+<div class="grid">
+<div><label>Año horizonte</label><select id="horizonte" onchange="actualizarPrecioCO2()">
+<option value="2030">2030</option><option value="2035" selected>2035</option><option value="2040">2040</option></select></div>
+<div><label>Precio CO₂ proyectado (€/t)</label><input id="precioCO2" type="number" value="140"></div>
+<div><label>Escenario de mercado</label><select id="escenario" onchange="actualizarPrecioCO2()">
+<option value="base">Base (Comisión Europea)</option><option value="alto">Alto (BloombergNEF)</option><option value="manual">Manual</option></select></div>
+</div>
+<p class="note">Proyecciones basadas en el precio de la directiva UE ETS2 y escenarios de BloombergNEF para el mercado voluntary carbon.</p>
+</div>
+
+<div class="card">
+<h2>3 · Vehículo candidato (después del cambio)</h2>
+<div class="grid">
+<div><label>Matrícula (opcional)</label><input id="matDespues" placeholder="5678 XYZ" maxlength="9"></div>
+<div><label>Tipo</label><select id="combDespues">
+<option value="electrico">Eléctrico (BEV)</option><option value="híbridoench">Híbrido enchufable (PHEV)</option>
+<option value="híbrido">Híbrido (HEV)</option><option value="gasolina">Gasolina</option>
+<option value="diesel">Diésel</option><option value="glp">GLP/GNC</option></select></div>
+<div><label>Consumo (l/100 km o kWh/100km)</label><input id="consDespues" type="number" step="0.1" value="15"></div>
+<div><label>Km anuales</label><input id="kmDespues" type="number" value="15000"></div>
+<div><label>Precio energía (€/l o €/kWh)</label><input id="precioDespues" type="number" step="0.01" value="0.15"></div>
+<div><label>Precio compra vehículo (€)</label><input id="pCompraDespues" type="number" value="28000"></div>
+</div>
+<div class="warnbox" id="warnRTVV"></div>
+</div>
+
+<div class="card">
+<h2>4 · Comparativa y rentabilidad</h2>
+<button class="btn" onclick="calcular()">Calcular análisis completo</button>
+<div class="result" id="resCalc">
+<div class="kpi">
+<div><b id="kCO2">—</b><small>t CO₂/año evitadas</small></div>
+<div><b id="kAhorro">—</b><small>€/año ahorro operativo</small></div>
+<div><b id="kPayback">—</b><small>años para amortizar</small></div>
+<div><b id="k10">—</b><small>ahorro neto a 10 años</small></div>
+<div><b id="kValCO2">—</b><small>€ valor CO₂ evitado (horizonte)</small></div>
+</div>
+<div class="warnbox" id="warnPayback"></div>
+<canvas id="chartTCO" style="margin-top:20px"></canvas>
+<table id="tablaAnios"><thead><tr><th>Año</th><th>CO₂ acumulado (t)</th><th>Ahorro acumulado (€)</th><th>TCO antes (€)</th><th>TCO después (€)</th></tr></thead><tbody></tbody></table>
+<button class="btn secondary" onclick="exportarPDF()">📄 Exportar informe PDF</button>
+</div>
+</div>
+
+<div class="card">
+<h2>5 · Metodología</h2>
+<p class="note">Factores de emisión (DEFRA/MITECO): gasolina 2,31 kg CO₂/l · diésel 2,68 · eléctrico mix RED 0,16 kg/kWh · PHEV 1,0 kg/kWh equivalente · GLP 1,51. El distintivo RTVV influye en el coste operativo en ZBE (penalización estimada 300 €/año para vehículos sin distintivo en zonas de bajas emisiones). El payback considera precio de compra, ahorro operativo anual y valorización del CO₂ evitado al precio del horizonte seleccionado.</p>
+</div>
+
+</main>
+<footer class="footer-contact">
+<p><strong>Miguel Ángel Layunta López</strong></p>
+<p>✉ mlayuntalopez@gmail.com &nbsp;|&nbsp; 📞 698 910 833</p>
+<p>TRAZA//CO2 · Consultoría de movilidad y descarbonización · 2026</p>
+</footer>
+
+<script>
+const FACTORES={gasolina:2.31,diesel:2.68,híbrido:1.85,híbridoench:1.0,glp:1.51,electrico:0.16};
+const UNIDAD_KWH=['electrico','híbridoench'];
+const PRECIOS_CO2={2030:{base:90,alto:120},2035:{base:140,alto:190},2040:{base:190,alto:260}};
+const DISTINTIVOS={A:'0',B:'ECO',C:'C',E:'E',0:'—'};
+let chart=null;
+
+function actualizarPrecioCO2(){
+ const y=document.getElementById('horizonte').value,e=document.getElementById('escenario').value;
+ if(e!=='manual'&&PRECIOS_CO2[y]){document.getElementById('precioCO2').value=PRECIOS_CO2[y][e];}
+}
+
+function consultarDGT(){
+ const m=document.getElementById('matAntes').value.trim();
+ const out=document.getElementById('resDGT');
+ if(!m){out.style.display='block';out.innerHTML='<p style="color:var(--warn)">⚠ Introduce una matrícula para consultar. (Demo: la consulta real a la DGT requiere API key — puedes conectarla en producción).</p>';return;}
+ const d=hashMat(m);
+ const badges=['A','B','C','E'];
+ const b=badges[d%4];
+ out.style.display='block';
+ out.innerHTML='<p>Distintivo estimado: <span class="badge b'+b+'">'+b+'</span> · Consulta orientativa sin API oficial.</p>';
+}
+function hashMat(s){let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))>>>0;return h;}
+
+function calcVeh(idPref){
+ const comb=document.getElementById('comb'+idPref).value;
+ const cons=parseFloat(document.getElementById('cons'+idPref).value)||0;
+ const km=parseFloat(document.getElementById('km'+idPref).value)||0;
+ const precio=parseFloat(document.getElementById('precio'+idPref).value)||0;
+ const compra=parseFloat(document.getElementById('pCompra'+idPref).value)||0;
+ const co2=cons*km/100*FACTORES[comb]; // kg/año
+ const coste=cons*km/100*precio;
+ return {comb,co2:co2/1000,coste,compra,km};
+}
+
+function calcular(){
+ const a=calcVeh('Antes'),b=calcVeh('Despues');
+ const precioCO2=parseFloat(document.getElementById('precioCO2').value)||0;
+ const horizonte=parseInt(document.getElementById('horizonte').value);
+ const añosH=horizonte-2026;
+
+ const warnRTVV=document.getElementById('warnRTVV');
+ const sinDistinto=['gasolina','diesel'].includes(b.comb);
+ let penaliza=0;
+ if(sinDistinto){warnRTVV.style.display='block';warnRTVV.innerHTML='⚠ El vehículo candidato ('+b.comb+') no obtendría distintivo ECO/CERO/0. En ZBE puede suponer ~300 €/año de coste operativo adicional. Se ha incluido en el cálculo.';penaliza=300;}
+ else{warnRTVV.style.display='none';}
+
+ const co2Evitadas=a.co2-b.co2;
+ const ahorroOp=(a.co2*0)+(a.coste-(b.coste+penaliza));
+ const inversion=b.compra-a.compra;
+ const valorCO2=co2Evitadas*precioCO2;
+ const ahorroTotal=ahorroOp+valorCO2;
+ const payback=ahorroTotal>0?inversion/ahorroTotal:Infinity;
+
+ document.getElementById('kCO2').textContent=co2Evitadas.toFixed(2);
+ document.getElementById('kAhorro').textContent=ahorroTotal.toFixed(0)+' €';
+ document.getElementById('kPayback').textContent=isFinite(payback)?payback.toFixed(1)+' años':'Nunca';
+ document.getElementById('kValCO2').textContent=valorCO2.toFixed(0)+' €';
+ const neto10=ahorroTotal*10-inversion;
+ document.getElementById('k10').textContent=neto10.toFixed(0)+' €';
+
+ const wp=document.getElementById('warnPayback');
+ if(!isFinite(payback)){wp.style.display='block';wp.textContent='⚠ El cambio NO es rentable en ningún horizonte con estos datos.';}
+ else if(payback>7){wp.style.display='block';wp.textContent='⚠ Payback largo ('+payback.toFixed(1)+' años). Revisa precio de compra o km anuales.';}
+ else{wp.style.display='none';}
+
+ const tbody=document.querySelector('#tablaAnios tbody');tbody.innerHTML='';
+ let co2ac=0,ahac=0;const labels=[],d1=[],d2=[],d3=[];
+ for(let i=1;i<=10;i++){
+  co2ac+=co2Evitadas;ahac+=ahorroTotal;
+  const tcoA=a.compra+a.coste*i;
+  const tcoB=b.compra+(b.coste+penaliza)*i;
+  tbody.insertAdjacentHTML('beforeend','<tr><td>'+i+'</td><td>'+co2ac.toFixed(2)+'</td><td>'+ahac.toFixed(0)+'</td><td>'+tcoA.toFixed(0)+'</td><td>'+tcoB.toFixed(0)+'</td></tr>');
+  labels.push('Año '+i);d1.push(tcoA);d2.push(tcoB);d3.push(co2ac);
+ }
+ document.getElementById('resCalc').style.display='block';
+ if(chart)chart.destroy();
+ chart=new Chart(document.getElementById('chartTCO'),{type:'line',data:{labels,datasets:[
+  {label:'TCO vehículo actual (€)',data:d1,borderColor:'#ff5c5c',yAxisID:'y'},
+  {label:'TCO vehículo nuevo (€)',data:d2,borderColor:'#00d4a0',yAxisID:'y'},
+  {label:'CO₂ evitado acumulado (t)',data:d3,borderColor:'#00b3e6',yAxisID:'y1'}]},
+ options:{scales:{y:{ticks:{color:'#8aa6ba'},grid:{color:'#1c3a52'}},y1:{position:'right',ticks:{color:'#8aa6ba'},grid:{display:false}}},plugins:{legend:{labels:{color:'#eaf4f9'}}}}});
+}
+
+function exportarPDF(){
+ const{jsPDF}=window.jspdf;const doc=new jsPDF();
+ doc.setFontSize(16);doc.text('TRAZA//CO2 - Informe de analisis',14,18);
+ doc.setFontSize(10);doc.text('Miguel Angel Layunta Lopez - mlayuntalopez@gmail.com - 698 910 833',14,25);
+ doc.text('Horizonte: '+document.getElementById('horizonte').value+' | CO2: '+document.getElementById('precioCO2').value+' EUR/t',14,31);
+ let y=42;
+ ['kCO2','kAhorro','kPayback','k10','kValCO2'].forEach((id,i)=>{
+  const names=['t CO2/año evitadas','Ahorro operativo anual','Payback','Ahorro neto 10 años','Valor CO2 evitado'];
+  doc.setFontSize(11);doc.text(names[i]+': '+document.getElementById(id).textContent,14,y);y+=8;});
+ doc.save('TRAZA-CO2_informe.pdf');
+}
+
+actualizarPrecioCO2();
+
+// Registro del Service Worker para capacidades PWA y soporte offline
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(reg => console.log('Service Worker registrado con éxito:', reg.scope))
+      .catch(err => console.log('Error al registrar el Service Worker:', err));
+  });
+}
+</script>
+</body>
+</html>
