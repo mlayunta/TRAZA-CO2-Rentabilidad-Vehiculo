@@ -1,0 +1,17 @@
+{
+  "name": "TRAZA//CO2 — Calculadora de Huella y Rentabilidad",
+  "short_name": "TRAZA//CO2",
+  "description": "Calculadora profesional de huella de carbono, coste total de propiedad (TCO) y rentabilidad económica del cambio de vehículo.",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#081420",
+  "theme_color": "#00d4a0",
+  "icons": [
+    {
+      "src": "icons/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
